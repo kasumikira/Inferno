@@ -14,6 +14,7 @@ static Notifier win32_unhook_notifier;
 static HHOOK    win32_keyboard_hook;
 static HWND     win32_window;
 static DWORD    win32_grab;
+static bool     exit_notifier_registered;
 
 static LRESULT CALLBACK keyboard_hook_cb(int code, WPARAM wparam, LPARAM lparam)
 {
@@ -82,8 +83,18 @@ void win32_kbd_set_window(void* hwnd)
         win32_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_hook_cb, GetModuleHandle(NULL), 0);
         if (win32_keyboard_hook) {
             win32_unhook_notifier.notify = keyboard_hook_unhook;
-            qemu_add_exit_notifier(&win32_unhook_notifier);
+            /* Workaroud for windows to avoid global keyboard lag. Will be reverted once the root cause is found and fixed */
+            if (!exit_notifier_registered) {
+                qemu_add_exit_notifier(&win32_unhook_notifier);
+                exit_notifier_registered = true;
+            }
         }
+    }
+
+    /* Workaroud for windows to avoid global keyboard lag. Will be reverted once the root cause is found and fixed */
+    if (!hwnd && win32_keyboard_hook) {
+        UnhookWindowsHookEx(win32_keyboard_hook);
+        win32_keyboard_hook = NULL;
     }
 
     win32_window = hwnd;
