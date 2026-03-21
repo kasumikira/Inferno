@@ -21,8 +21,8 @@
 
 ; NSIS_WIN32_MAKENSIS
 
-!define PRODUCT "QEMU"
-!define URL     "https://www.qemu.org/"
+!define PRODUCT "Inferno"
+!define URL     "https://chefkiss.dev/applehax/inferno/"
 
 !define UNINST_EXE "$INSTDIR\qemu-uninstall.exe"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
@@ -46,24 +46,24 @@ SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 
 ; The name of the installer.
-Name "QEMU"
+Name "Inferno"
 
 ; The file to write
 OutFile "${OUTFILE}"
 
 ; The default installation directory.
 !ifdef W64
-InstallDir $PROGRAMFILES64\qemu
+InstallDir $PROGRAMFILES64\inferno
 !else
-InstallDir $PROGRAMFILES\qemu
+InstallDir $PROGRAMFILES\inferno
 !endif
 
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 !ifdef W64
-InstallDirRegKey HKLM "Software\qemu64" "Install_Dir"
+InstallDirRegKey HKLM "Software\inferno64" "Install_Dir"
 !else
-InstallDirRegKey HKLM "Software\qemu32" "Install_Dir"
+InstallDirRegKey HKLM "Software\inferno32" "Install_Dir"
 !endif
 
 ; Request administrator privileges for Windows Vista.
@@ -89,7 +89,7 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_LINK "Visit the QEMU Wiki online!"
+!define MUI_FINISHPAGE_LINK "Visit the Inferno Wiki online!"
 !define MUI_FINISHPAGE_LINK_LOCATION "${URL}"
 !insertmacro MUI_PAGE_FINISH
 
@@ -118,7 +118,7 @@ Section "${PRODUCT} (required)"
 
     File "${SRCDIR}\COPYING"
     File "${SRCDIR}\COPYING.LIB"
-    File "${SRCDIR}\README.rst"
+    File "${SRCDIR}\README.md"
     File "${SRCDIR}\VERSION"
 
     File /r "${BINDIR}\keymaps"
@@ -132,7 +132,7 @@ Section "${PRODUCT} (required)"
     WriteRegStr HKLM SOFTWARE\${PRODUCT} "Install_Dir" "$INSTDIR"
 
     ; Write the uninstall keys for Windows
-    WriteRegStr HKLM "${UNINST_KEY}" "DisplayName" "QEMU"
+    WriteRegStr HKLM "${UNINST_KEY}" "DisplayName" "Inferno"
 !ifdef DISPLAYVERSION
     WriteRegStr HKLM "${UNINST_KEY}" "DisplayVersion" "${DISPLAYVERSION}"
 !endif
@@ -158,6 +158,8 @@ SectionGroupEnd
 Section "Libraries (DLL)" SectionDll
     SetOutPath "$INSTDIR"
     File "${DLLDIR}\*.dll"
+    ; Workaround for libslirp-*.dll files that are not copied to the BINDIR
+    File ".\subprojects\slirp\*.dll"
 SectionEnd
 !endif
 
