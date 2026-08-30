@@ -56,7 +56,7 @@ def main():
     prefix = os.path.splitdrive(args.prefix)[1]
     destdir = tempfile.mkdtemp()
     try:
-        subprocess.run(["make", "install", "DESTDIR=" + destdir])
+        subprocess.run(["meson", "install", "--destdir", destdir])
         with open(
             os.path.join(destdir + prefix, "system-emulations.nsh"), "w"
         ) as nsh, open(
