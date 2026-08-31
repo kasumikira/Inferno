@@ -1,0 +1,96 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [ "windows-fix", "dev-windows-fix" ]
+  pull_request:
+    branches: [ "windows-fix", "dev-windows-fix" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}\.ccache
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Clone mlib submodule
+      run: |
+        git submodule update --init --depth 1 --single-branch util/mlib
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ucrt64
+        pacboy: >-
+          git:
+          glib2:p
+          gcc:p
+          dtc:p
+          pixman:p
+          zlib:p
+          libtasn1:p
+          ninja:p
+          meson:p
+          base-devel:
+          cmake:
+          gnutls:p
+          pkgconf:p
+          SDL2:p
+          libssh:p
+          gtk3:p
+          nsis:p
+          ccache:p
+
+    - name: Prepare ccache directory
+      shell: msys2 {0}
+      run: |
+        mkdir -p "$(cygpath -u "$CCACHE_DIR")"
+        ccache -p
+
+    - name: Cache ccache
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
+    - name: Reset ccache stats
+      shell: msys2 {0}
+      run: |
+        ccache -z
+
+    - name: Build and Install with Make
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/lzfse/lzfse.git && cd lzfse
+        make -j$(nproc)
+        cp build/bin/lzfse $MSYSTEM_PREFIX/bin/
+        cp build/bin/liblzfse.a $MSYSTEM_PREFIX/lib/
+        cp src/lzfse.h $MSYSTEM_PREFIX/include/
+        
+    - name: Configure and Build
+      shell: msys2 {0}
+      run: |
+        meson setup build . -Dbindir=.
+        meson compile -C build
+
+    - name: Show ccache stats
+      shell: msys2 {0}
+      run: |
+        ccache -sv
+        du -sh "$(cygpath -u "$CCACHE_DIR")"
+
+    - name: Make NSIS Installer
+      shell: msys2 {0}
+      run: |
+        meson compile -C build installer
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: windows-installer
+        path: build/qemu-setup-*.exe
